@@ -48,3 +48,21 @@ test("writeManagedMarkdown appends managed section to manual file", async () => 
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("writeManagedMarkdown preserves dangling begin marker content before appended managed section", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "pi-init-writer-"));
+  const file = join(dir, "AGENTS.md");
+  try {
+    await writeFile(file, "<!-- ORGM:BEGIN generated -->\nManual note that is not managed\n");
+
+    await writeManagedMarkdown(file, "first generated\n");
+    await writeManagedMarkdown(file, "second generated\n");
+
+    const text = await readFile(file, "utf8");
+    assert.match(text, /Manual note that is not managed/);
+    assert.match(text, /second generated/);
+    assert.doesNotMatch(text, /first generated/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

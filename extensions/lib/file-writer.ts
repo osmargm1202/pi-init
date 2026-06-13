@@ -19,8 +19,8 @@ export async function writeManagedMarkdown(filePath: string, body: string): Prom
 	}
 
 	const current = await readFile(filePath, "utf8");
-	const beginIndex = current.indexOf(BEGIN);
 	const endIndex = current.indexOf(END);
+	const beginIndex = endIndex >= 0 ? current.lastIndexOf(BEGIN, endIndex) : -1;
 	if (beginIndex >= 0 && endIndex > beginIndex) {
 		const before = current.slice(0, beginIndex).trimEnd();
 		const after = current.slice(endIndex + END.length).trimStart();
