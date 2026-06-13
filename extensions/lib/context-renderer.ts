@@ -1,4 +1,4 @@
-import type { RepoScan } from "./repo-scan.ts";
+import type { KeyFile, LocalSkill, NestedProject, RepoScan } from "./repo-scan.ts";
 
 function normalizeInlineText(value: string): string {
 	return value
@@ -7,6 +7,13 @@ function normalizeInlineText(value: string): string {
 		.trim()
 		.replace(/`+/g, "")
 		.replace(/\|/g, "\\|");
+}
+
+function normalizeBlockText(value: string): string {
+	return value
+		.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]+/g, " ")
+		.replace(/`+/g, "")
+		.trim();
 }
 
 function codeSpan(value: string): string {
@@ -28,6 +35,54 @@ function commandLines(scripts: Record<string, string>): string[] {
 	return Object.entries(scripts).map(([name, command]) => `- ${codeSpan(`npm run ${name}`)} — ${codeSpan(command)}`);
 }
 
+function gitState(scan: RepoScan): string {
+	if (!scan.git) return "- Git not scanned.";
+	if (!scan.git.isRepo) return `- Not a git repository${scan.git.error ? `: ${normalizeInlineText(scan.git.error)}` : "."}`;
+	const status = scan.git.status.length ? scan.git.status.map((line) => `  - ${normalizeInlineText(line)}`).join("\n") : "  - Clean";
+	return `- Repository root: ${codeSpan(scan.git.root)}\n- Branch: ${codeSpan(scan.git.branch || "unknown")}\n- Status:\n${status}`;
+}
+
+function keyFileBlocks(files: KeyFile[] | undefined): string {
+	if (!files?.length) return "- No existing instruction/docs excerpts detected.";
+	return files
+		.map((file) => {
+			const excerpt = normalizeBlockText(file.excerpt)
+				.split("\n")
+				.slice(0, 30)
+				.map((line) => `> ${line}`)
+				.join("\n");
+			return `### ${codeSpan(file.path)}\n\n${excerpt || "> (empty file)"}`;
+		})
+		.join("\n\n");
+}
+
+function nestedProjectLines(projects: NestedProject[] | undefined): string {
+	if (!projects?.length) return "- None detected";
+	return projects
+		.map((project) => {
+			const files = project.importantFiles.length ? project.importantFiles.map(codeSpan).join(", ") : "no key files detected";
+			const stack = project.stack.length ? project.stack.map(normalizeInlineText).join(", ") : "unknown stack";
+			return `- ${codeSpan(project.path)} — ${normalizeInlineText(project.packageName)}; ${stack}; key files: ${files}`;
+		})
+		.join("\n");
+}
+
+function localSkillLines(skills: LocalSkill[] | undefined): string {
+	if (!skills?.length) return "- None detected";
+	return skills
+		.map((skill) => {
+			const skillMd = skill.files.find((file) => file.endsWith("/SKILL.md")) || `${skill.path}/SKILL.md`;
+			const description = skill.description ? ` — ${normalizeInlineText(skill.description)}` : "";
+			return `- ${normalizeInlineText(skill.name)} at ${codeSpan(skillMd)}${description}`;
+		})
+		.join("\n");
+}
+
+function instructionList(scan: RepoScan): string {
+	const files = scan.instructionFiles ?? [];
+	return files.length ? files.map((file) => `- ${codeSpan(file)}`).join("\n") : "- None detected";
+}
+
 export function renderContextMarkdown(scan: RepoScan): string {
 	const commands = commandLines(scan.scripts);
 	const packageName = normalizeInlineText(scan.packageName) || "unknown-project";
@@ -44,9 +99,31 @@ ${packageName} is a repository at ${root}. This file captures stable project con
 
 ${list(scan.stack)}
 
+## Git State
+
+${gitState(scan)}
+
 ## Repository Map
 
 ${list(scan.tree.slice(0, 80))}
+
+## Existing Instructions and Docs
+
+Detected instruction files:
+
+${instructionList(scan)}
+
+Read excerpts:
+
+${keyFileBlocks(scan.keyFiles)}
+
+## Nested Projects
+
+${nestedProjectLines(scan.nestedProjects)}
+
+## Local Pi Skills
+
+${localSkillLines(scan.localSkills)}
 
 ## Architecture / Ownership
 
@@ -77,6 +154,7 @@ ${list(scan.importantFiles)}
 
 - Read this file before re-analyzing the repository from scratch.
 - Trust package manifests and scripts listed here unless files changed.
+- Honor detected instruction files and local Pi skills before changing code.
 ${scan.warnings.length ? `\n## Scan Warnings\n\n${list(scan.warnings)}\n` : ""}`;
 }
 
@@ -90,6 +168,9 @@ export function renderAgentsMarkdown(scan: RepoScan): string {
 - Read \`CONTEXT.md\` first for durable project context.
 - Read \`RESUME.md\` for current handoff state when continuing work.
 - Keep generated ORGM sections intact unless intentionally regenerating them.
+- Read detected instruction files first: ${scan.instructionFiles?.length ? scan.instructionFiles.map(codeSpan).join(", ") : "none detected"}.
+- Load local skill instructions when task matches: ${scan.localSkills?.length ? scan.localSkills.map((skill) => codeSpan(skill.files.find((file) => file.endsWith("/SKILL.md")) || `${skill.path}/SKILL.md`)).join(", ") : "none detected"}.
+${scan.nestedProjects?.length ? "- Nested git projects detected; choose the intended child project before editing: " + scan.nestedProjects.map((project) => codeSpan(project.path)).join(", ") + "." : ""}
 
 ## Package Ownership
 
@@ -108,7 +189,7 @@ ${commands.length ? commands.join("\n") : "- No scripts detected; use package-sp
 
 ## Safety Notes
 
-- Do not edit ignored/generated directories such as \`node_modules\`, \`dist\`, \`build\`, or \`.git\`.
+- Do not edit ignored/generated directories such as \`node_modules\`, \`dist\`, \`build\`, \`.venv\`, cache directories, or \`.git\`.
 - Ask before destructive changes.
 
 ## Context Files

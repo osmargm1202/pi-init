@@ -63,3 +63,44 @@ test("renderAgentsMarkdown normalizes unsafe script names and commands onto one 
   assert.match(text, /npm run test - injected script/);
   assert.match(text, /node --test all - injected command/);
 });
+
+const claudeLikeScan = {
+  ...scan,
+  git: { isRepo: false, root: "", branch: "", status: [], error: "not a git repository" },
+  instructionFiles: ["AGENTS.md"],
+  keyFiles: [
+    { path: "AGENTS.md", excerpt: "# AGENTS\n\nUse .pi/skills/climatizacion/SKILL.md before HVAC work." },
+    { path: "README.md", excerpt: "# Renovacion\n\nSelf-contained Pi skill." }
+  ],
+  nestedProjects: [
+    { path: "cli_aa", importantFiles: ["AGENTS.md"], packageName: "cli_aa", stack: ["Python"] },
+    { path: "renovacion", importantFiles: ["AGENTS.md", "README.md"], packageName: "renovacion", stack: ["Python"] }
+  ],
+  localSkills: [
+    { name: "climatizacion", path: ".pi/skills/climatizacion", description: "Use for HVAC loads.", files: [".pi/skills/climatizacion/SKILL.md", ".pi/skills/climatizacion/pyproject.toml"] }
+  ]
+};
+
+test("renderContextMarkdown includes Claude-like repository evidence", () => {
+  const text = renderContextMarkdown(claudeLikeScan);
+  assert.match(text, /## Git State/);
+  assert.match(text, /not a git repository/);
+  assert.match(text, /## Existing Instructions and Docs/);
+  assert.match(text, /AGENTS\.md/);
+  assert.match(text, /Use \.pi\/skills\/climatizacion\/SKILL\.md/);
+  assert.match(text, /## Nested Projects/);
+  assert.match(text, /cli_aa/);
+  assert.match(text, /renovacion/);
+  assert.match(text, /## Local Pi Skills/);
+  assert.match(text, /climatizacion/);
+  assert.match(text, /Use for HVAC loads/);
+});
+
+test("renderAgentsMarkdown tells future agents to honor detected local instructions and skills", () => {
+  const text = renderAgentsMarkdown(claudeLikeScan);
+  assert.match(text, /Read detected instruction files first/);
+  assert.match(text, /AGENTS\.md/);
+  assert.match(text, /Load local skill instructions when task matches/);
+  assert.match(text, /\.pi\/skills\/climatizacion\/SKILL\.md/);
+  assert.match(text, /Nested git projects detected/);
+});
