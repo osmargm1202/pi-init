@@ -80,39 +80,6 @@ ${list(scan.importantFiles)}
 ${scan.warnings.length ? `\n## Scan Warnings\n\n${list(scan.warnings)}\n` : ""}`;
 }
 
-export function renderReviewPrompt(scan: RepoScan): string {
-	const safePackage = codeSpan(scan.packageName);
-	const commands = commandLines(scan.scripts);
-	return `Review this repository and improve the generated ORGM context files.
-
-Project: ${safePackage}
-Root: ${codeSpan(scan.root)}
-
-Files to review and improve:
-- \`CONTEXT.md\`: durable project overview, stack, architecture, commands, phases, settled decisions.
-- \`AGENTS.md\`: concrete instructions for future Pi agents working in this repo.
-
-Start by reading:
-- \`CONTEXT.md\`
-- \`AGENTS.md\`
-- \`README.md\` if present
-- package manifests and docs/specs/plans relevant to current work
-
-Detected stack:
-${list(scan.stack)}
-
-Detected commands:
-${commands.length ? commands.join("\n") : "- No package scripts detected"}
-
-Instructions:
-1. Verify generated content against the actual repository.
-2. Add missing business/domain context, package ownership, current phases, and known constraints.
-3. Keep manual content outside ORGM managed sections intact.
-4. Make the files useful enough that the next agent does not need to rediscover the project from scratch.
-5. Run a quick verification command if the repo has one, then summarize what changed.
-`;
-}
-
 export function renderAgentsMarkdown(scan: RepoScan): string {
 	const commands = commandLines(scan.scripts);
 	const packageName = codeSpan(scan.packageName);
