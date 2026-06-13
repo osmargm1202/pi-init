@@ -73,8 +73,22 @@ const claudeLikeScan = {
     { path: "README.md", excerpt: "# Renovacion\n\nSelf-contained Pi skill." }
   ],
   nestedProjects: [
-    { path: "cli_aa", importantFiles: ["AGENTS.md"], packageName: "cli_aa", stack: ["Python"] },
-    { path: "renovacion", importantFiles: ["AGENTS.md", "README.md"], packageName: "renovacion", stack: ["Python"] }
+    {
+      path: "cli_aa",
+      importantFiles: ["AGENTS.md"],
+      packageName: "cli_aa",
+      stack: ["Python"],
+      keyFiles: [{ path: "cli_aa/AGENTS.md", excerpt: "Use --output-dir <ruta>. Never create .venv inside the skill." }],
+      localSkills: [{ name: "climatizacion", path: "cli_aa/.pi/skills/climatizacion", description: "Use for thermal loads and HVAC memorias.", files: ["cli_aa/.pi/skills/climatizacion/SKILL.md", "cli_aa/.pi/skills/climatizacion/pyproject.toml"] }]
+    },
+    {
+      path: "renovacion",
+      importantFiles: ["AGENTS.md", "README.md"],
+      packageName: "renovacion",
+      stack: ["Python"],
+      keyFiles: [{ path: "renovacion/AGENTS.md", excerpt: "developer_mode = true. Must follow RED → GREEN → REFACTOR." }],
+      localSkills: [{ name: "renovacion", path: "renovacion/.pi/skills/renovacion", description: "Use for ventilation and airflow memorias.", files: ["renovacion/.pi/skills/renovacion/SKILL.md"] }]
+    }
   ],
   localSkills: [
     { name: "climatizacion", path: ".pi/skills/climatizacion", description: "Use for HVAC loads.", files: [".pi/skills/climatizacion/SKILL.md", ".pi/skills/climatizacion/pyproject.toml"] }
@@ -103,4 +117,17 @@ test("renderAgentsMarkdown tells future agents to honor detected local instructi
   assert.match(text, /Load local skill instructions when task matches/);
   assert.match(text, /\.pi\/skills\/climatizacion\/SKILL\.md/);
   assert.match(text, /Nested git projects detected/);
+});
+
+test("renderContextMarkdown synthesizes child repo skill workflows", () => {
+  const text = renderContextMarkdown(claudeLikeScan);
+  assert.match(text, /### `cli_aa`/);
+  assert.match(text, /climatizacion/);
+  assert.match(text, /Use for thermal loads and HVAC memorias/);
+  assert.match(text, /--output-dir <ruta>/);
+  assert.match(text, /Never create \.venv inside the skill/);
+  assert.match(text, /### `renovacion`/);
+  assert.match(text, /developer_mode = true/);
+  assert.match(text, /RED → GREEN → REFACTOR/);
+  assert.match(text, /Use for ventilation and airflow memorias/);
 });

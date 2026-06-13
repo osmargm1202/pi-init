@@ -107,3 +107,31 @@ test("scanRepository detects child git projects when current directory is not a 
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("scanRepository summarizes child repo docs and skills like Claude init", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "pi-init-parent-skills-"));
+  try {
+    await mkdir(join(dir, "cli_aa", ".git"), { recursive: true });
+    await mkdir(join(dir, "cli_aa", ".pi", "skills", "climatizacion"), { recursive: true });
+    await writeFile(join(dir, "cli_aa", "AGENTS.md"), "# AGENTS\n\nUse `.pi/skills/climatizacion/SKILL.md`. Run pytest tests -q.\n");
+    await writeFile(join(dir, "cli_aa", ".pi", "skills", "climatizacion", "SKILL.md"), "---\nname: climatizacion\ndescription: Use for thermal loads and HVAC memorias.\n---\n\n# climatizacion\n\nUse --output-dir <ruta>. Never create .venv inside the skill.\n");
+    await writeFile(join(dir, "cli_aa", ".pi", "skills", "climatizacion", "pyproject.toml"), "[project]\nname = \"cli-aa\"\nrequires-python = \">=3.13\"\n");
+
+    await mkdir(join(dir, "renovacion", ".git"), { recursive: true });
+    await mkdir(join(dir, "renovacion", ".pi", "skills", "renovacion"), { recursive: true });
+    await writeFile(join(dir, "renovacion", "README.md"), "# Renovacion\n\nSelf-contained Pi skill for renovation-airflow calculation.\n");
+    await writeFile(join(dir, "renovacion", "AGENTS.md"), "# Renovacion Root Mode Contract\n\ndeveloper_mode = true\n\nMust follow RED → GREEN → REFACTOR.\n");
+    await writeFile(join(dir, "renovacion", ".pi", "skills", "renovacion", "SKILL.md"), "---\nname: renovacion\ndescription: Use for ventilation and airflow memorias.\n---\n\n# renovacion\n\nDefault workflow is demand-only. Run scripts/run-project.sh <id>.\n");
+
+    const scan = await scanRepository(dir);
+    assert.equal(scan.nestedProjects.length, 2);
+    assert(scan.nestedProjects[0].keyFiles.some((file) => file.path === "cli_aa/AGENTS.md" && file.excerpt.includes("pytest tests -q")));
+    assert.equal(scan.nestedProjects[0].localSkills[0].name, "climatizacion");
+    assert.equal(scan.nestedProjects[0].localSkills[0].description, "Use for thermal loads and HVAC memorias.");
+    assert(scan.nestedProjects[0].localSkills[0].files.includes("cli_aa/.pi/skills/climatizacion/pyproject.toml"));
+    assert(scan.nestedProjects[1].keyFiles.some((file) => file.path === "renovacion/AGENTS.md" && file.excerpt.includes("developer_mode = true")));
+    assert.equal(scan.nestedProjects[1].localSkills[0].name, "renovacion");
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

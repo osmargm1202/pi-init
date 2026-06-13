@@ -70,6 +70,8 @@ export type NestedProject = {
 	importantFiles: string[];
 	packageName: string;
 	stack: string[];
+	keyFiles: KeyFile[];
+	localSkills: LocalSkill[];
 };
 
 export type LocalSkill = {
@@ -186,13 +188,13 @@ function normalizeExcerpt(text: string, maxChars = 1800): string {
 		.trim();
 }
 
-async function readKeyFiles(root: string): Promise<KeyFile[]> {
+async function readKeyFiles(root: string, prefix = ""): Promise<KeyFile[]> {
 	const files: KeyFile[] = [];
 	for (const candidate of KEY_FILE_CANDIDATES) {
 		const filePath = join(root, candidate);
 		if (!existsSync(filePath)) continue;
 		try {
-			files.push({ path: candidate, excerpt: normalizeExcerpt(await readFile(filePath, "utf8")) });
+			files.push({ path: prefix ? `${prefix}/${candidate}` : candidate, excerpt: normalizeExcerpt(await readFile(filePath, "utf8")) });
 		} catch {
 			// Ignore unreadable project docs; scanner warnings are reserved for high-level failures.
 		}
@@ -223,6 +225,8 @@ async function scanNestedProjects(root: string): Promise<NestedProject[]> {
 			importantFiles,
 			packageName: typeof pkg?.name === "string" ? pkg.name : entry.name,
 			stack: detectStack(pkg, importantFiles),
+			keyFiles: await readKeyFiles(projectRoot, entry.name),
+			localSkills: await scanLocalSkills(projectRoot, entry.name),
 		});
 	}
 	return projects;
@@ -239,7 +243,7 @@ async function listSkillFiles(root: string, skillPath: string): Promise<string[]
 	return files.filter((file) => file.startsWith(relative(root, skillPath)) || file.startsWith(".pi/skills/"));
 }
 
-async function scanLocalSkills(root: string): Promise<LocalSkill[]> {
+async function scanLocalSkills(root: string, pathPrefix = ""): Promise<LocalSkill[]> {
 	const skillsRoot = join(root, ".pi", "skills");
 	if (!existsSync(skillsRoot)) return [];
 	let entries;
@@ -259,11 +263,13 @@ async function scanLocalSkills(root: string): Promise<LocalSkill[]> {
 		} catch {
 			skillText = "";
 		}
+		const relPath = relative(root, skillRoot);
+		const files = await listSkillFiles(root, skillRoot);
 		skills.push({
 			name: frontmatterValue(skillText, "name") || entry.name,
-			path: relative(root, skillRoot),
+			path: pathPrefix ? `${pathPrefix}/${relPath}` : relPath,
 			description: frontmatterValue(skillText, "description"),
-			files: await listSkillFiles(root, skillRoot),
+			files: pathPrefix ? files.map((file) => `${pathPrefix}/${file}`) : files,
 		});
 	}
 	return skills;

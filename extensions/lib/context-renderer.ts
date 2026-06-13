@@ -67,6 +67,18 @@ function nestedProjectLines(projects: NestedProject[] | undefined): string {
 		.join("\n");
 }
 
+function nestedProjectBlocks(projects: NestedProject[] | undefined): string {
+	if (!projects?.length) return "- None detected";
+	return projects
+		.map((project) => {
+			const stack = project.stack.length ? project.stack.map(normalizeInlineText).join(", ") : "unknown stack";
+			const skills = localSkillLines(project.localSkills);
+			const docs = keyFileBlocks(project.keyFiles);
+			return `### ${codeSpan(project.path)}\n\n- Package/name: ${normalizeInlineText(project.packageName)}\n- Stack: ${stack}\n- Local skills:\n${skills}\n\nKey instructions/docs:\n\n${docs}`;
+		})
+		.join("\n\n");
+}
+
 function localSkillLines(skills: LocalSkill[] | undefined): string {
 	if (!skills?.length) return "- None detected";
 	return skills
@@ -120,6 +132,8 @@ ${keyFileBlocks(scan.keyFiles)}
 ## Nested Projects
 
 ${nestedProjectLines(scan.nestedProjects)}
+
+${nestedProjectBlocks(scan.nestedProjects)}
 
 ## Local Pi Skills
 
