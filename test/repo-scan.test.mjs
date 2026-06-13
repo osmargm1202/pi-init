@@ -33,3 +33,28 @@ test("scanRepository reads manifests scripts and ignores generated directories",
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("scanRepository omits invalid package script entries", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "pi-init-scan-"));
+  try {
+    await writeFile(join(dir, "package.json"), JSON.stringify({
+      name: "script-sample",
+      scripts: {
+        test: "node --test",
+        build: "tsc",
+        "": "echo empty-key",
+        empty: "",
+        numeric: 42,
+        object: { command: "node index.js" }
+      }
+    }, null, 2));
+
+    const scan = await scanRepository(dir);
+    assert.deepEqual(scan.scripts, {
+      test: "node --test",
+      build: "tsc"
+    });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

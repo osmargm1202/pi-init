@@ -45,6 +45,17 @@ async function walk(root: string, dir: string, out: string[], maxFiles: number):
 	}
 }
 
+function sanitizeScripts(scripts: unknown): Record<string, string> {
+	if (!scripts || typeof scripts !== "object" || Array.isArray(scripts)) return {};
+	const sanitized: Record<string, string> = {};
+	for (const [key, value] of Object.entries(scripts)) {
+		if (typeof key === "string" && key.length > 0 && typeof value === "string" && value.length > 0) {
+			sanitized[key] = value;
+		}
+	}
+	return sanitized;
+}
+
 function detectStack(pkg: Record<string, any> | undefined, importantFiles: string[]): string[] {
 	const deps = { ...(pkg?.dependencies ?? {}), ...(pkg?.devDependencies ?? {}) };
 	const stack = new Set<string>();
@@ -69,7 +80,7 @@ export async function scanRepository(root: string, maxFiles = 250): Promise<Repo
 	return {
 		root,
 		packageName: typeof pkg?.name === "string" ? pkg.name : "unknown-project",
-		scripts: pkg?.scripts && typeof pkg.scripts === "object" ? pkg.scripts : {},
+		scripts: sanitizeScripts(pkg?.scripts),
 		stack: detectStack(pkg, importantFiles),
 		importantFiles,
 		tree,
