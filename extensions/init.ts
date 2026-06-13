@@ -17,7 +17,7 @@ export default function (pi: ExtensionAPI) {
 			await writeManagedMarkdown(join(root, "ORGMINIT_REVIEW_PROMPT.md"), reviewPrompt);
 			ctx.ui.notify("ORGM context files updated: CONTEXT.md, AGENTS.md, ORGMINIT_REVIEW_PROMPT.md", "success");
 
-			if (args.split(/\s+/).includes("--review")) {
+			if (!args.split(/\s+/).includes("--scan-only")) {
 				const result = await ctx.newSession({
 					withSession: async (reviewCtx) => {
 						await reviewCtx.sendUserMessage(reviewPrompt);
