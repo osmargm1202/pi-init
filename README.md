@@ -10,7 +10,8 @@ pi install git:github.com/osmargm1202/pi-init
 
 ## Owns
 
-- `/orgm-init`: materialize full `~/.pi/agent/orgm.json` defaults.
+- `/orgm-init`: generate/update `CONTEXT.md` and `AGENTS.md` for the current project.
+- `/orgm-config-init`: materialize full `~/.pi/agent/orgm.json` defaults.
 
 ## Development
 
