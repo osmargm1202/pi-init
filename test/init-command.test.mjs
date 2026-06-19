@@ -6,14 +6,14 @@ import { join } from "node:path";
 import test from "node:test";
 import initExtension from "../extensions/init.ts";
 
-test("/orgm-init writes only CONTEXT.md and AGENTS.md", async () => {
+test("/init writes only CONTEXT.md and AGENTS.md", async () => {
   const dir = await mkdtemp(join(tmpdir(), "pi-init-command-"));
   try {
     await writeFile(join(dir, "package.json"), JSON.stringify({ name: "fixture", scripts: { test: "node --test" } }, null, 2));
     const commands = new Map();
     let newSessionCalled = false;
     initExtension({ registerCommand(name, definition) { commands.set(name, definition); } });
-    await commands.get("orgm-init").handler("", {
+    await commands.get("init").handler("", {
       cwd: dir,
       ui: { notify() {} },
       newSession: async () => {
@@ -30,7 +30,7 @@ test("/orgm-init writes only CONTEXT.md and AGENTS.md", async () => {
   }
 });
 
-test("/orgm-init updates marked sections without overwriting manual content", async () => {
+test("/init updates marked sections without overwriting manual content", async () => {
   const dir = await mkdtemp(join(tmpdir(), "pi-init-manual-"));
   try {
     await writeFile(join(dir, "package.json"), JSON.stringify({ name: "fixture", scripts: { test: "node --test" } }, null, 2));
@@ -38,11 +38,11 @@ test("/orgm-init updates marked sections without overwriting manual content", as
     await writeFile(join(dir, "AGENTS.md"), "Agent manual top\n\n<!-- ORGM:BEGIN generated -->\nold\n<!-- ORGM:END generated -->\n");
     const commands = new Map();
     initExtension({ registerCommand(name, definition) { commands.set(name, definition); } });
-    await commands.get("orgm-init").handler("", {
+    await commands.get("init").handler("", {
       cwd: dir,
       ui: { notify() {} },
       newSession: async () => {
-        throw new Error("/orgm-init must not start review sessions");
+        throw new Error("/init must not start review sessions");
       }
     });
     const context = await readFile(join(dir, "CONTEXT.md"), "utf8");

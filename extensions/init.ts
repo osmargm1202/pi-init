@@ -6,7 +6,7 @@ import { initializeOrgmConfig, orgmConfigPath } from "./lib/orgm-config.ts";
 import { scanRepository } from "./lib/repo-scan.ts";
 
 export default function (pi: ExtensionAPI) {
-	pi.registerCommand("orgm-init", {
+	pi.registerCommand("init", {
 		description: "Generate ORGM CONTEXT.md and AGENTS.md for this project",
 		handler: async (_args: string, ctx: ExtensionCommandContext) => {
 			const root = ctx.cwd;
@@ -17,7 +17,7 @@ export default function (pi: ExtensionAPI) {
 		},
 	});
 
-	pi.registerCommand("orgm-config-init", {
+	pi.registerCommand("config-init", {
 		description: "Materialize full ~/.pi/agent/orgm.json defaults",
 		handler: async (_args: string, ctx: ExtensionCommandContext) => {
 			const configPath = orgmConfigPath();

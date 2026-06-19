@@ -10,9 +10,9 @@ test("package ships orgm init commands", () => {
   assert.ok(pkg.peerDependencies["@earendil-works/pi-coding-agent"]);
   assert.ok(existsSync("extensions/init.ts"));
   const source = readFileSync("extensions/init.ts", "utf8");
-  assert.match(source, /registerCommand\("orgm-init"/);
-  assert.match(source, /registerCommand\("orgm-config-init"/);
+  assert.match(source, /registerCommand\("init"/);
+  assert.match(source, /registerCommand\("config-init"/);
   assert.match(source, /CONTEXT\.md/);
   assert.match(source, /AGENTS\.md/);
-  assert.doesNotMatch(source, /registerCommand\("(?!orgm-)/);
+  assert.doesNotMatch(source, /registerCommand\("orgm-/);
 });
